@@ -5,19 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</title>
 
-  <!-- ✅ Nạp đúng thư viện tương thích cho HTML -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/gh/googlecreativelab/teachablemachine-community@master/libraries/image/dist/teachablemachine-image.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
   <style>
-    :root {
+    :root{
       --accent:#0b6cf0;
       --bg:#f7fbff;
       --card:#ffffff;
       --muted:#666;
       --radius:16px;
     }
-    html,body {
+    html,body{
       height:100%;
       margin:0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -26,7 +24,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    .container {
+    .container{
       max-width:900px;
       margin:0 auto;
       padding:12px;
@@ -37,24 +35,24 @@
       box-sizing:border-box;
     }
 
-    header {
+    header{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
     }
-    .title {
+    .title{
       font-size:20px;
       font-weight:700;
       color:var(--accent);
       line-height:1.05;
     }
-    .subtitle {
+    .subtitle{
       font-size:12px;
       color:var(--muted);
     }
 
-    .card {
+    .card{
       background:var(--card);
       border-radius:var(--radius);
       box-shadow:0 6px 20px rgba(12,40,80,0.06);
@@ -65,24 +63,24 @@
       flex-direction:column;
     }
 
-    #video-container {
+    #video-container{
       width:100%;
       max-width:540px;
-      aspect-ratio:9/16;
+      aspect-ratio:9/16; 
       height:180px;
       background:#000;
       border-radius:12px;
       overflow:hidden;
       position:relative;
     }
-    video {
+    video{
       width:100%;
       height:100%;
       object-fit:cover;
       transform-origin:center;
     }
 
-    .controls {
+    .controls{
       width:100%;
       display:flex;
       gap:8px;
@@ -90,7 +88,7 @@
       align-items:center;
       margin-top:6px;
     }
-    button {
+    button{
       border:0;
       background:var(--accent);
       color:#fff;
@@ -99,24 +97,24 @@
       font-weight:600;
       cursor:pointer;
     }
-    button.secondary {
+    button.secondary{
       background:#e6f0ff;
       color:var(--accent);
       font-weight:700;
     }
 
-    .info {
+    .info{
       width:100%;
       display:flex;
       gap:10px;
       flex-direction:column;
     }
-    .label-list {
+    .label-list{
       display:flex;
       gap:8px;
       flex-wrap:wrap;
     }
-    .pill {
+    .pill{
       background:#f1f7ff;
       padding:6px 10px;
       border-radius:999px;
@@ -125,23 +123,23 @@
       font-size:13px;
     }
 
-    .details {
+    .details{
       display:flex;
       gap:8px;
       flex-direction:column;
     }
-    .details .row {
+    .details .row{
       background:#fbfdff;
       padding:8px;
       border-radius:8px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
-    .small {
+    .small{
       font-size:13px;
       color:var(--muted);
     }
 
-    footer {
+    footer{
       margin-top:auto;
       display:flex;
       justify-content:space-between;
@@ -164,7 +162,7 @@
     <header>
       <div>
         <div class="title">ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</div>
-        <div class="subtitle small">Ứng dụng AI trong dạy học môn Công nghệ</div>
+        <div class="subtitle small">Ứng dụng AI trong dạy học môn Công nghệ </div>
       </div>
       <div style="text-align:right;font-size:12px;color:var(--muted)">
         Trường THPT Trần Quốc Tuấn
@@ -215,32 +213,33 @@
     </div>
 
     <footer>
-      <div class="small">Ứng dụng AI trong dạy học môn Công nghệ</div>
+      <div class="small">Ứng dụng AI trong dạy học môn Công nghệ </div>
       <div class="small">© Trường THPT Trần Quốc Tuấn</div>
     </footer>
   </div>
 
   <script>
+    // ✅ Liên kết tự động đến thư mục /model khi tải lên GitHub
     const MODEL_URL = "./model/model.json"; 
 
     const INFO_DB = {
-      "Resistor": {
-        "name": "Điện trở (Resistor)",
-        "function": "Giới hạn dòng điện và chia điện áp trong mạch điện.",
-        "structure": "Thân gốm hoặc film có hai chân kim loại ở hai đầu.",
-        "principle": "Hoạt động theo định luật Ohm: U = I × R."
-      },
-      "Capacitor": {
-        "name": "Tụ điện (Capacitor)",
-        "function": "Tích và phóng điện, giúp lọc nhiễu hoặc ổn định điện áp.",
-        "structure": "Hai bản dẫn song song ngăn cách bởi lớp điện môi.",
-        "principle": "Khi có hiệu điện thế, các bản tụ tích điện trái dấu."
-      },
-      "Inductor": {
-        "name": "Cuộn cảm (Inductor)",
-        "function": "Tạo ra từ trường khi có dòng điện chạy qua, dùng để lọc nhiễu hoặc tích năng lượng từ.",
-        "structure": "Cuộn dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
-        "principle": "Dựa vào hiện tượng cảm ứng điện từ."
+  "Điện trở": {
+    name: "Điện trở (Resistor)",
+    function: "Giới hạn dòng điện và chia điện áp trong mạch điện.",
+    structure: "Thân gốm hoặc film có hai chân kim loại ở hai đầu.",
+    principle: "Hoạt động theo định luật Ohm: U = I × R."
+  },
+  "Tụ điện": {
+    name: "Tụ điện (Capacitor)",
+    function: "Tích và phóng điện, giúp lọc nhiễu hoặc ổn định điện áp.",
+    structure: "Hai bản dẫn song song ngăn cách bởi lớp điện môi.",
+    principle: "Khi có hiệu điện thế, các bản tụ tích điện trái dấu."
+  },
+  "Cuộn cảm": {
+    name: "Cuộn cảm (Inductor)",
+    function: "Tạo ra từ trường khi có dòng điện chạy qua, dùng để lọc nhiễu hoặc tích năng lượng từ.",
+    structure: "Cuộn dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
+    principle: "Dựa vào hiện tượng cảm ứng điện từ."
       }
     };
 
@@ -263,13 +262,13 @@
         model = await tmImage.load(MODEL_URL, MODEL_URL.replace('model.json','metadata.json'));
         maxPredictions = model.getTotalClasses();
         statusEl.textContent = "✅ Model đã sẵn sàng. Nhấn 'Bắt đầu'.";
-      } catch (e) {
+      } catch (e){
         console.error(e);
         statusEl.textContent = "❌ Lỗi tải model. Kiểm tra đường dẫn /model.";
       }
     }
 
-    async function startWebcam() {
+    async function startWebcam(){
       const video = document.getElementById('webcam');
       if (webcam && webcam.stream) stopWebcam();
       statusEl.textContent = "Yêu cầu quyền camera...";
@@ -286,7 +285,7 @@
       }
     }
 
-    function stopWebcam() {
+    function stopWebcam(){
       if (webcam && webcam.stream) webcam.stream.getTracks().forEach(t => t.stop());
       webcam = null;
       statusEl.textContent = "⏹️ Camera đã dừng.";
@@ -329,3 +328,4 @@
   </script>
 </body>
 </html>
+
