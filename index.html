@@ -2,57 +2,54 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</title>
 
-  <!-- Thư viện TensorFlow.js + Teachable Machine -->
+  <!-- Thư viện TensorFlow.js & Teachable Machine -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
 
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #e6f0ff, #ffffff);
+      background: linear-gradient(135deg, #e8f1ff, #ffffff);
       text-align: center;
       margin: 0;
       padding: 0;
     }
 
     header {
-      background-color: #004aad;
+      background: #004aad;
       color: white;
-      font-size: 1.6em;
+      font-size: 1.4em;
       font-weight: bold;
-      padding: 14px 0;
-      letter-spacing: 1px;
+      padding: 12px 0;
     }
 
     .subheader {
       color: #004aad;
       font-weight: 600;
-      font-size: 1em;
-      margin-top: 4px;
+      margin: 6px 0 12px 0;
     }
 
     video {
-      margin-top: 14px;
-      border-radius: 16px;
-      width: 320px;
-      height: 240px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      width: 90%;
+      max-width: 400px;
+      border-radius: 14px;
+      margin-top: 8px;
       background: black;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
     button {
-      margin: 16px 8px;
+      margin: 10px;
       padding: 10px 20px;
-      font-size: 1.1em;
+      font-size: 1em;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       color: white;
       background-color: #007bff;
       cursor: pointer;
-      transition: 0.3s;
     }
 
     button:hover {
@@ -60,12 +57,12 @@
     }
 
     .info-box {
-      margin: 20px auto;
+      margin: 16px auto;
       width: 90%;
       max-width: 600px;
       background: white;
-      padding: 20px;
-      border-radius: 14px;
+      padding: 18px;
+      border-radius: 12px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       text-align: left;
     }
@@ -76,10 +73,9 @@
     }
 
     footer {
-      margin-top: 25px;
       color: #555;
+      margin-top: 25px;
       font-size: 0.9em;
-      font-weight: 500;
     }
   </style>
 </head>
@@ -87,13 +83,13 @@
   <header>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</header>
   <div class="subheader">Trường THPT Trần Quốc Tuấn</div>
 
-  <button onclick="init()">📸 BẮT ĐẦU NHẬN DIỆN</button>
-
+  <video id="webcam" autoplay playsinline muted></video>
   <div>
-    <video id="webcam" autoplay playsinline muted></video>
+    <button onclick="startCamera()">🎥 MỞ CAMERA</button>
+    <button onclick="stopCamera()">⏹ DỪNG</button>
   </div>
 
-  <div class="info-box" id="infoBox">
+  <div class="info-box">
     <h2>Kết quả nhận diện:</h2>
     <p><b>Tên linh kiện:</b> <span id="ten">—</span></p>
     <p><b>Chức năng:</b> <span id="cn">—</span></p>
@@ -101,16 +97,16 @@
     <p><b>Nguyên lý hoạt động:</b> <span id="nl">—</span></p>
   </div>
 
-  <footer>© 2025 Trường THPT Trần Quốc Tuấn - Ứng dụng AI trong dạy học Công nghệ</footer>
+  <footer>© 2025 Trường THPT Trần Quốc Tuấn — Ứng dụng AI trong dạy học Công nghệ</footer>
 
   <script>
     const MODEL_URL = "./model/";
-    let model, webcam, maxPredictions;
+    let model, webcamStream;
 
     const INFO_DB = {
       "Điện trở": {
         name: "Điện trở (Resistor)",
-        function: "Giới hạn dòng điện và chia điện áp trong mạch.",
+        function: "Giới hạn dòng điện và chia điện áp trong mạch điện.",
         structure: "Thân gốm có hai chân kim loại ở hai đầu.",
         principle: "Hoạt động theo định luật Ohm: U = I × R."
       },
@@ -124,57 +120,71 @@
         name: "Cuộn cảm (Inductor)",
         function: "Tạo ra từ trường khi dòng điện chạy qua.",
         structure: "Dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
-        principle: "Dựa trên hiện tượng cảm ứng điện từ."
+        principle: "Dựa vào hiện tượng cảm ứng điện từ."
       }
     };
 
-    async function init() {
-      const modelURL = MODEL_URL + "model.json";
-      const metadataURL = MODEL_URL + "metadata.json";
+    async function loadModel() {
+      model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+      console.log("✅ Model đã sẵn sàng!");
+    }
+
+    async function startCamera() {
+      await loadModel();
+      const video = document.getElementById("webcam");
 
       try {
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        const flip = true; 
-        webcam = new tmImage.Webcam(320, 240, flip);
-        await webcam.setup();
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        // Gắn luồng camera trực tiếp vào thẻ video
-        document.getElementById("webcam").srcObject = webcam.webcam;
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }, // camera sau
+          audio: false
+        });
+        video.srcObject = webcamStream;
+        predictLoop(video);
       } catch (err) {
-        alert("❌ Không thể tải mô hình AI. Kiểm tra lại thư mục 'model'.");
+        alert("⚠️ Không thể truy cập camera. Hãy bật quyền camera cho trình duyệt!");
         console.error(err);
       }
     }
 
-    async function loop() {
-      webcam.update();
-      await predict();
-      window.requestAnimationFrame(loop);
+    function stopCamera() {
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+        webcamStream = null;
+      }
+      document.getElementById("ten").innerText = "—";
+      document.getElementById("cn").innerText = "—";
+      document.getElementById("ct").innerText = "—";
+      document.getElementById("nl").innerText = "—";
     }
 
-    async function predict() {
-      const prediction = await model.predict(webcam.canvas);
-      prediction.sort((a, b) => b.probability - a.probability);
+    async function predictLoop(video) {
+      if (!model) return;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
 
-      const top = prediction[0];
-      const info = INFO_DB[top.className] || null;
+      async function loop() {
+        if (!webcamStream) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const prediction = await model.predict(canvas);
 
-      if (info && top.probability > 0.7) {
-        document.getElementById("ten").innerText = info.name;
-        document.getElementById("cn").innerText = info.function;
-        document.getElementById("ct").innerText = info.structure;
-        document.getElementById("nl").innerText = info.principle;
-      } else {
-        document.getElementById("ten").innerText = "Không xác định rõ (" + top.className + ")";
-        document.getElementById("cn").innerText = "—";
-        document.getElementById("ct").innerText = "—";
-        document.getElementById("nl").innerText = "—";
+        prediction.sort((a, b) => b.probability - a.probability);
+        const top = prediction[0];
+        const info = INFO_DB[top.className];
+
+        if (info && top.probability > 0.7) {
+          document.getElementById("ten").innerText = info.name;
+          document.getElementById("cn").innerText = info.function;
+          document.getElementById("ct").innerText = info.structure;
+          document.getElementById("nl").innerText = info.principle;
+        } else {
+          document.getElementById("ten").innerText = "Đang phân tích...";
+        }
+        requestAnimationFrame(loop);
       }
+      loop();
     }
   </script>
 </body>
-</h
+</html>
