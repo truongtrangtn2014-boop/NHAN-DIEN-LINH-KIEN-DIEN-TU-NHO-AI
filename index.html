@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</title>
 
-  <!-- Nạp đúng phiên bản thư viện Teachable Machine -->
+  <!-- Thư viện TensorFlow.js + Teachable Machine -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
 
@@ -27,9 +27,25 @@
       letter-spacing: 1px;
     }
 
+    .subheader {
+      color: #004aad;
+      font-weight: 600;
+      font-size: 1em;
+      margin-top: 4px;
+    }
+
+    video {
+      margin-top: 14px;
+      border-radius: 16px;
+      width: 320px;
+      height: 240px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      background: black;
+    }
+
     button {
-      margin: 18px;
-      padding: 12px 26px;
+      margin: 16px 8px;
+      padding: 10px 20px;
       font-size: 1.1em;
       border: none;
       border-radius: 10px;
@@ -41,12 +57,6 @@
 
     button:hover {
       background-color: #0056b3;
-    }
-
-    video {
-      border-radius: 16px;
-      margin-top: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
 
     .info-box {
@@ -62,21 +72,26 @@
 
     .info-box h2 {
       color: #004aad;
+      margin-bottom: 10px;
     }
 
     footer {
       margin-top: 25px;
-      color: #666;
+      color: #555;
       font-size: 0.9em;
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
   <header>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</header>
+  <div class="subheader">Trường THPT Trần Quốc Tuấn</div>
 
   <button onclick="init()">📸 BẮT ĐẦU NHẬN DIỆN</button>
 
-  <div><video id="webcam" autoplay playsinline width="320" height="240"></video></div>
+  <div>
+    <video id="webcam" autoplay playsinline muted></video>
+  </div>
 
   <div class="info-box" id="infoBox">
     <h2>Kết quả nhận diện:</h2>
@@ -86,13 +101,12 @@
     <p><b>Nguyên lý hoạt động:</b> <span id="nl">—</span></p>
   </div>
 
-  <footer>Trường THPT Trần Quốc Tuấn - 2025</footer>
+  <footer>© 2025 Trường THPT Trần Quốc Tuấn - Ứng dụng AI trong dạy học Công nghệ</footer>
 
   <script>
     const MODEL_URL = "./model/";
     let model, webcam, maxPredictions;
 
-    // Cơ sở dữ liệu thông tin linh kiện
     const INFO_DB = {
       "Điện trở": {
         name: "Điện trở (Resistor)",
@@ -114,22 +128,21 @@
       }
     };
 
-    // Hàm khởi tạo AI
     async function init() {
       const modelURL = MODEL_URL + "model.json";
       const metadataURL = MODEL_URL + "metadata.json";
 
       try {
-        // Nạp mô hình Teachable Machine
         model = await tmImage.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
 
-        const flip = true;
+        const flip = true; 
         webcam = new tmImage.Webcam(320, 240, flip);
-        await webcam.setup(); // mở camera
+        await webcam.setup();
         await webcam.play();
         window.requestAnimationFrame(loop);
 
+        // Gắn luồng camera trực tiếp vào thẻ video
         document.getElementById("webcam").srcObject = webcam.webcam;
       } catch (err) {
         alert("❌ Không thể tải mô hình AI. Kiểm tra lại thư mục 'model'.");
@@ -150,7 +163,7 @@
       const top = prediction[0];
       const info = INFO_DB[top.className] || null;
 
-      if (info && top.probability > 0.70) {
+      if (info && top.probability > 0.7) {
         document.getElementById("ten").innerText = info.name;
         document.getElementById("cn").innerText = info.function;
         document.getElementById("ct").innerText = info.structure;
@@ -164,4 +177,4 @@
     }
   </script>
 </body>
-</html>
+</h
