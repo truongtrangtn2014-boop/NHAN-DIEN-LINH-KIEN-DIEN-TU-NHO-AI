@@ -5,41 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</title>
 
-  <!-- Thư viện TensorFlow.js và Teachable Machine -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+  <!-- Nạp đúng phiên bản thư viện Teachable Machine -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
 
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #f0f4f8, #e8f0ff);
+      background: linear-gradient(135deg, #e6f0ff, #ffffff);
       text-align: center;
       margin: 0;
       padding: 0;
     }
 
     header {
-      background: #004aad;
+      background-color: #004aad;
       color: white;
-      padding: 16px 0;
       font-size: 1.6em;
       font-weight: bold;
-    }
-
-    video {
-      margin-top: 15px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 14px 0;
+      letter-spacing: 1px;
     }
 
     button {
-      margin: 12px;
-      padding: 10px 20px;
+      margin: 18px;
+      padding: 12px 26px;
       font-size: 1.1em;
-      background-color: #007bff;
-      color: white;
       border: none;
       border-radius: 10px;
+      color: white;
+      background-color: #007bff;
       cursor: pointer;
       transition: 0.3s;
     }
@@ -48,13 +43,20 @@
       background-color: #0056b3;
     }
 
+    video {
+      border-radius: 16px;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
     .info-box {
-      max-width: 600px;
       margin: 20px auto;
+      width: 90%;
+      max-width: 600px;
       background: white;
       padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      border-radius: 14px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       text-align: left;
     }
 
@@ -63,19 +65,18 @@
     }
 
     footer {
-      margin-top: 30px;
+      margin-top: 25px;
+      color: #666;
       font-size: 0.9em;
-      color: #555;
     }
   </style>
 </head>
-
 <body>
   <header>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</header>
 
-  <button onclick="init()">🔍 BẮT ĐẦU NHẬN DIỆN</button>
+  <button onclick="init()">📸 BẮT ĐẦU NHẬN DIỆN</button>
 
-  <div><video id="webcam" autoplay playsinline width="300" height="225"></video></div>
+  <div><video id="webcam" autoplay playsinline width="320" height="240"></video></div>
 
   <div class="info-box" id="infoBox">
     <h2>Kết quả nhận diện:</h2>
@@ -87,64 +88,53 @@
 
   <footer>Trường THPT Trần Quốc Tuấn - 2025</footer>
 
-  <script type="text/javascript">
+  <script>
     const MODEL_URL = "./model/";
-
     let model, webcam, maxPredictions;
 
+    // Cơ sở dữ liệu thông tin linh kiện
     const INFO_DB = {
       "Điện trở": {
         name: "Điện trở (Resistor)",
-        function: "Giới hạn dòng điện và chia điện áp trong mạch điện.",
-        structure: "Thân gốm hoặc film có hai chân kim loại ở hai đầu.",
-        principle: "Hoạt động theo định luật Ohm: U = I × R."
-      },
-      "dien tro": {
-        name: "Điện trở (Resistor)",
-        function: "Giới hạn dòng điện và chia điện áp trong mạch điện.",
-        structure: "Thân gốm hoặc film có hai chân kim loại ở hai đầu.",
+        function: "Giới hạn dòng điện và chia điện áp trong mạch.",
+        structure: "Thân gốm có hai chân kim loại ở hai đầu.",
         principle: "Hoạt động theo định luật Ohm: U = I × R."
       },
       "Tụ điện": {
         name: "Tụ điện (Capacitor)",
-        function: "Tích và phóng điện, giúp lọc nhiễu hoặc ổn định điện áp.",
-        structure: "Hai bản dẫn song song ngăn cách bởi lớp điện môi.",
-        principle: "Khi có hiệu điện thế, các bản tụ tích điện trái dấu."
-      },
-      "tu dien": {
-        name: "Tụ điện (Capacitor)",
-        function: "Tích và phóng điện, giúp lọc nhiễu hoặc ổn định điện áp.",
-        structure: "Hai bản dẫn song song ngăn cách bởi lớp điện môi.",
-        principle: "Khi có hiệu điện thế, các bản tụ tích điện trái dấu."
+        function: "Tích và phóng điện, giúp lọc nhiễu và ổn định điện áp.",
+        structure: "Hai bản kim loại ngăn cách bởi lớp điện môi.",
+        principle: "Tích điện khi có hiệu điện thế giữa hai bản tụ."
       },
       "Cuộn cảm": {
         name: "Cuộn cảm (Inductor)",
-        function: "Tạo ra từ trường khi có dòng điện chạy qua, dùng để lọc nhiễu hoặc tích năng lượng từ.",
-        structure: "Cuộn dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
-        principle: "Dựa vào hiện tượng cảm ứng điện từ."
-      },
-      "cuon cam": {
-        name: "Cuộn cảm (Inductor)",
-        function: "Tạo ra từ trường khi có dòng điện chạy qua, dùng để lọc nhiễu hoặc tích năng lượng từ.",
-        structure: "Cuộn dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
-        principle: "Dựa vào hiện tượng cảm ứng điện từ."
+        function: "Tạo ra từ trường khi dòng điện chạy qua.",
+        structure: "Dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
+        principle: "Dựa trên hiện tượng cảm ứng điện từ."
       }
     };
 
+    // Hàm khởi tạo AI
     async function init() {
       const modelURL = MODEL_URL + "model.json";
       const metadataURL = MODEL_URL + "metadata.json";
 
-      model = await tmImage.load(modelURL, metadataURL);
-      maxPredictions = model.getTotalClasses();
+      try {
+        // Nạp mô hình Teachable Machine
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
 
-      const flip = true;
-      webcam = new tmImage.Webcam(300, 225, flip);
-      await webcam.setup();
-      await webcam.play();
-      window.requestAnimationFrame(loop);
+        const flip = true;
+        webcam = new tmImage.Webcam(320, 240, flip);
+        await webcam.setup(); // mở camera
+        await webcam.play();
+        window.requestAnimationFrame(loop);
 
-      document.getElementById("webcam").srcObject = webcam.webcam;
+        document.getElementById("webcam").srcObject = webcam.webcam;
+      } catch (err) {
+        alert("❌ Không thể tải mô hình AI. Kiểm tra lại thư mục 'model'.");
+        console.error(err);
+      }
     }
 
     async function loop() {
@@ -156,17 +146,17 @@
     async function predict() {
       const prediction = await model.predict(webcam.canvas);
       prediction.sort((a, b) => b.probability - a.probability);
+
       const top = prediction[0];
+      const info = INFO_DB[top.className] || null;
 
-      const info = INFO_DB[top.className.trim()] || INFO_DB[top.className.trim().toLowerCase()] || null;
-
-      if (info) {
+      if (info && top.probability > 0.70) {
         document.getElementById("ten").innerText = info.name;
         document.getElementById("cn").innerText = info.function;
         document.getElementById("ct").innerText = info.structure;
         document.getElementById("nl").innerText = info.principle;
       } else {
-        document.getElementById("ten").innerText = top.className;
+        document.getElementById("ten").innerText = "Không xác định rõ (" + top.className + ")";
         document.getElementById("cn").innerText = "—";
         document.getElementById("ct").innerText = "—";
         document.getElementById("nl").innerText = "—";
