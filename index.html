@@ -1,164 +1,210 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</title>
 
-  <!-- Thư viện TensorFlow.js & Teachable Machine -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
+  <!-- Thư viện TensorFlow và Teachable Machine -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
 
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #e8f1ff, #ffffff);
-      text-align: center;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(180deg, #f0f6ff, #ffffff);
+      color: #111;
       margin: 0;
-      padding: 0;
+      text-align: center;
     }
 
     header {
-      background: #004aad;
+      background: #0b6cf0;
       color: white;
-      font-size: 1.4em;
-      font-weight: bold;
-      padding: 12px 0;
+      padding: 10px;
+      font-weight: 700;
+      font-size: 18px;
     }
 
-    .subheader {
-      color: #004aad;
-      font-weight: 600;
-      margin: 6px 0 12px 0;
+    .subtitle {
+      color: #fff;
+      font-size: 13px;
     }
 
-    video {
-      width: 90%;
-      max-width: 400px;
-      border-radius: 14px;
-      margin-top: 8px;
-      background: black;
+    #video-container {
+      margin: 16px auto;
+      width: 260px;
+      height: 180px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    button {
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .controls {
       margin: 10px;
-      padding: 10px 20px;
-      font-size: 1em;
+    }
+
+    button {
       border: none;
-      border-radius: 8px;
+      background: #0b6cf0;
       color: white;
-      background-color: #007bff;
+      padding: 8px 14px;
+      margin: 4px;
+      border-radius: 8px;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    button:hover {
-      background-color: #0056b3;
+    button.secondary {
+      background: #e6f0ff;
+      color: #0b6cf0;
     }
 
-    .info-box {
-      margin: 16px auto;
+    .info {
+      background: #fff;
+      margin: 14px auto;
       width: 90%;
-      max-width: 600px;
-      background: white;
-      padding: 18px;
-      border-radius: 12px;
+      max-width: 400px;
+      padding: 14px;
+      border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       text-align: left;
     }
 
-    .info-box h2 {
-      color: #004aad;
-      margin-bottom: 10px;
+    footer {
+      margin-top: 20px;
+      font-size: 13px;
+      color: #666;
+      padding-bottom: 10px;
     }
 
-    footer {
-      color: #555;
-      margin-top: 25px;
-      font-size: 0.9em;
+    @media (max-width: 480px) {
+      #video-container {
+        width: 220px;
+        height: 160px;
+      }
+      button {
+        padding: 6px 12px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
-<body>
-  <header>ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ</header>
-  <div class="subheader">Trường THPT Trần Quốc Tuấn</div>
 
-  <video id="webcam" autoplay playsinline muted></video>
-  <div>
-    <button onclick="startCamera()">🎥 MỞ CAMERA</button>
-    <button onclick="stopCamera()">⏹ DỪNG</button>
+<body>
+  <header>
+    ỨNG DỤNG AI NHẬN DIỆN LINH KIỆN ĐIỆN TỬ
+    <div class="subtitle">Trường THPT Trần Quốc Tuấn</div>
+  </header>
+
+  <div id="video-container">
+    <video id="webcam" autoplay playsinline muted></video>
   </div>
 
-  <div class="info-box">
-    <h2>Kết quả nhận diện:</h2>
-    <p><b>Tên linh kiện:</b> <span id="ten">—</span></p>
-    <p><b>Chức năng:</b> <span id="cn">—</span></p>
-    <p><b>Cấu tạo:</b> <span id="ct">—</span></p>
-    <p><b>Nguyên lý hoạt động:</b> <span id="nl">—</span></p>
+  <div class="controls">
+    <button id="startBtn">Bắt đầu</button>
+    <button id="stopBtn" class="secondary">Dừng</button>
+    <button id="flipBtn" class="secondary">Chuyển camera</button>
+  </div>
+
+  <div id="status">Trạng thái: Chưa sẵn sàng</div>
+
+  <div class="info">
+    <p><strong>Tên linh kiện:</strong> <span id="detectedName">—</span></p>
+    <p><strong>Độ tin cậy:</strong> <span id="detectedScore">—</span></p>
+    <p><strong>Công dụng:</strong> <span id="func">—</span></p>
+    <p><strong>Cấu tạo:</strong> <span id="structure">—</span></p>
+    <p><strong>Nguyên lý hoạt động:</strong> <span id="principle">—</span></p>
   </div>
 
   <footer>© 2025 Trường THPT Trần Quốc Tuấn — Ứng dụng AI trong dạy học Công nghệ</footer>
 
   <script>
-    const MODEL_URL = "./model/";
-    let model, webcamStream;
-
+    const MODEL_URL = "./model/model.json";
     const INFO_DB = {
       "Điện trở": {
         name: "Điện trở (Resistor)",
         function: "Giới hạn dòng điện và chia điện áp trong mạch điện.",
-        structure: "Thân gốm có hai chân kim loại ở hai đầu.",
+        structure: "Thân gốm hoặc film có hai chân kim loại ở hai đầu.",
         principle: "Hoạt động theo định luật Ohm: U = I × R."
       },
       "Tụ điện": {
         name: "Tụ điện (Capacitor)",
-        function: "Tích và phóng điện, giúp lọc nhiễu và ổn định điện áp.",
-        structure: "Hai bản kim loại ngăn cách bởi lớp điện môi.",
-        principle: "Tích điện khi có hiệu điện thế giữa hai bản tụ."
+        function: "Tích và phóng điện, giúp lọc nhiễu hoặc ổn định điện áp.",
+        structure: "Hai bản dẫn song song ngăn cách bởi lớp điện môi.",
+        principle: "Khi có hiệu điện thế, các bản tụ tích điện trái dấu."
       },
       "Cuộn cảm": {
         name: "Cuộn cảm (Inductor)",
-        function: "Tạo ra từ trường khi dòng điện chạy qua.",
-        structure: "Dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
+        function: "Tạo ra từ trường khi có dòng điện chạy qua, dùng để lọc nhiễu hoặc tích năng lượng từ.",
+        structure: "Cuộn dây dẫn quấn quanh lõi sắt từ hoặc lõi không khí.",
         principle: "Dựa vào hiện tượng cảm ứng điện từ."
       }
     };
 
-    async function loadModel() {
-      model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
-      console.log("✅ Model đã sẵn sàng!");
+    let model, webcamStream, usingFacingMode = "environment";
+
+    const video = document.getElementById("webcam");
+    const statusEl = document.getElementById("status");
+    const nameEl = document.getElementById("detectedName");
+    const scoreEl = document.getElementById("detectedScore");
+    const funcEl = document.getElementById("func");
+    const structEl = document.getElementById("structure");
+    const princEl = document.getElementById("principle");
+
+    async function initModel() {
+      statusEl.textContent = "Đang tải model...";
+      try {
+        model = await tmImage.load(MODEL_URL, MODEL_URL.replace("model.json", "metadata.json"));
+        statusEl.textContent = "✅ Model đã sẵn sàng.";
+      } catch (e) {
+        statusEl.textContent = "❌ Lỗi tải model. Kiểm tra đường dẫn /model/";
+        console.error(e);
+      }
     }
 
     async function startCamera() {
-      await loadModel();
-      const video = document.getElementById("webcam");
-
+      if (webcamStream) stopCamera();
+      statusEl.textContent = "🔄 Đang khởi động camera...";
       try {
         webcamStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }, // camera sau
+          video: { facingMode: usingFacingMode, width: 320, height: 240 },
           audio: false
         });
         video.srcObject = webcamStream;
-        predictLoop(video);
+        statusEl.textContent = "🎥 Camera đã bật.";
+        predictLoop();
       } catch (err) {
-        alert("⚠️ Không thể truy cập camera. Hãy bật quyền camera cho trình duyệt!");
+        statusEl.textContent = "⚠️ Không thể mở camera. Vui lòng bật quyền truy cập.";
         console.error(err);
       }
     }
 
     function stopCamera() {
       if (webcamStream) {
-        webcamStream.getTracks().forEach(track => track.stop());
+        webcamStream.getTracks().forEach(t => t.stop());
         webcamStream = null;
       }
-      document.getElementById("ten").innerText = "—";
-      document.getElementById("cn").innerText = "—";
-      document.getElementById("ct").innerText = "—";
-      document.getElementById("nl").innerText = "—";
+      statusEl.textContent = "⏹️ Camera đã dừng.";
     }
 
-    async function predictLoop(video) {
-      if (!model) return;
+    document.getElementById("startBtn").addEventListener("click", startCamera);
+    document.getElementById("stopBtn").addEventListener("click", stopCamera);
+    document.getElementById("flipBtn").addEventListener("click", async () => {
+      usingFacingMode = usingFacingMode === "environment" ? "user" : "environment";
+      await startCamera();
+    });
+
+    async function predictLoop() {
+      if (!model || !video) return;
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
 
@@ -166,25 +212,26 @@
         if (!webcamStream) return;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const prediction = await model.predict(canvas);
-
-        prediction.sort((a, b) => b.probability - a.probability);
-        const top = prediction[0];
-        const info = INFO_DB[top.className];
-
-        if (info && top.probability > 0.7) {
-          document.getElementById("ten").innerText = info.name;
-          document.getElementById("cn").innerText = info.function;
-          document.getElementById("ct").innerText = info.structure;
-          document.getElementById("nl").innerText = info.principle;
-        } else {
-          document.getElementById("ten").innerText = "Đang phân tích...";
-        }
+        ctx.drawImage(video, 0, 0);
+        const preds = await model.predict(canvas);
+        showPredictions(preds);
         requestAnimationFrame(loop);
       }
       loop();
     }
+
+    function showPredictions(preds) {
+      preds.sort((a,b) => b.probability - a.probability);
+      const top = preds[0];
+      const info = INFO_DB[top.className];
+      nameEl.textContent = info ? info.name : top.className;
+      scoreEl.textContent = (top.probability * 100).toFixed(1) + "%";
+      funcEl.textContent = info ? info.function : "—";
+      structEl.textContent = info ? info.structure : "—";
+      princEl.textContent = info ? info.principle : "—";
+    }
+
+    (async () => await initModel())();
   </script>
 </body>
 </html>
